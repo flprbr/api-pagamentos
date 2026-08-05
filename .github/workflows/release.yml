@@ -29,19 +29,21 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          tags: |
+            ghcr.io/${{ github.repository }}:main
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
 
       - uses: sigstore/cosign-installer@v3
       - uses: anchore/sbom-action@v0
         with:
-          image: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          image: ghcr.io/${{ github.repository }}:${{ github.sha }}
           format: cyclonedx-json
           output-file: sbom.cdx.json
 
       - name: Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          image-ref: ghcr.io/${{ github.repository }}:${{ github.sha }}
           format: cosign-vuln
           output: trivy.json
           exit-code: 0
@@ -72,8 +74,9 @@ jobs:
   generate-provenance:
     needs: build-sign-attest
     permissions:
+      actions: read
       id-token: write
-      contents: read
+      contents: write
       packages: write
     uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.0.0
     with:
