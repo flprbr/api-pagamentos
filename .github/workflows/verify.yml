@@ -1,0 +1,35 @@
+name: verify
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag da imagem a verificar (ex: v1.0.0)'
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+  id-token: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: sigstore/cosign-installer@v3
+      - name: Verificar assinatura
+        run: |
+          cosign verify "ghcr.io/${{ github.repository }}:${{ inputs.tag }}" \
+            --certificate-identity-regexp '^https://github.com/${{ github.repository_owner }}/.*' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+      - name: Verificar atestacao SBOM
+        run: |
+          cosign verify-attestation "ghcr.io/${{ github.repository }}:${{ inputs.tag }}" \
+            --type cyclonedx \
+            --certificate-identity-regexp '^https://github.com/${{ github.repository_owner }}/.*' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+      - name: Verificar provenance SLSA
+        run: |
+          cosign verify-attestation "ghcr.io/${{ github.repository }}:${{ inputs.tag }}" \
+            --type slsaprovenance \
+            --certificate-identity-regexp '^https://github.com/${{ github.repository_owner }}/.*' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
